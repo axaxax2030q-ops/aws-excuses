@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -132,3 +133,280 @@
             display: none;
             text-align: center;
         }
+
+        #preview-img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-submit:hover {
+            background: #283593;
+            transform: translateY(-2px);
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .loader {
+            width: 50px; height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .success-icon {
+            color: var(--success-color);
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .container { padding: 20px; }
+            h1 { font-size: 18px; }
+            .logo-img { max-width: 110px; }
+            .row-group { flex-direction: column; gap: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="status-overlay" class="overlay">
+        <div id="loader" class="loader"></div>
+        <div id="success-msg" style="display:none; text-align:center;">
+            <div class="success-icon">✓</div>
+            <h2>تم استلام العذر بنجاح</h2>
+            <p>سيتم مراجعة الطلب وتحديث الحالة في نظام نور.</p>
+            <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; border:none; background:var(--primary-color); color:white; border-radius:8px; cursor:pointer;">إرسال عذر آخر</button>
+        </div>
+    </div>
+
+    <header>
+        <img src="logo.png" alt="شعار متوسطة أوس بن ثابت" class="logo-img">
+        <h1>متوسطة أوس بن ثابت</h1>
+        <p class="subtitle">منصة رفع الأعذار الرقمية للطلاب</p>
+    </header>
+
+    <form id="excuseForm">
+        <div class="form-group">
+            <label>اسم الطالب الرباعي <span class="required-star">*</span></label>
+            <input type="text" id="studentName" placeholder="أدخل اسم الطالب الكامل" required>
+        </div>
+
+        <div class="row-group">
+            <div class="form-group">
+                <label>الصف الدراسي <span class="required-star">*</span></label>
+                <select id="studentGrade" required>
+                    <option value="">اختر الصف</option>
+                    <option>أول متوسط</option>
+                    <option>ثاني متوسط</option>
+                    <option>ثالث متوسط</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>الفصل <span class="required-star">*</span></label>
+                <select id="studentClass" required>
+                    <option value="">اختر الفصل</option>
+                    <option>1</option>
+                    <option>2</option>
+                    <option>3</option>
+                    <option>4</option>
+                    <option>5</option>
+                    <option>6</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>تاريخ الغياب <span class="required-star">*</span></label>
+            <input type="date" id="absenceDate" required>
+        </div>
+
+        <div class="form-group">
+            <label>سبب الغياب <span class="required-star">*</span></label>
+            <textarea id="reason" rows="3" placeholder="اشرح سبب الغياب باختصار" required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>رقم جوال ولي الأمر <span class="required-star">*</span></label>
+            <input type="tel" id="phone" placeholder="05xxxxxxxx" required>
+        </div>
+
+        <div class="form-group">
+            <label>إرفاق صورة العذر (طبي/رسمي) <span class="required-star">*</span></label>
+            <div class="file-upload" onclick="document.getElementById('fileInput').click()">
+                <span id="upload-text">اضغط هنا لرفع صورة العذر أو التقرير</span>
+                <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/gif,application/pdf" style="display:none;" required onchange="previewFile()">
+            </div>
+            <div id="preview-container">
+                <img id="preview-img" src="" alt="معاينة العذر">
+            </div>
+        </div>
+
+        <button type="submit" class="btn-submit">إرسال العذر الآن</button>
+    </form>
+</div>
+
+<script>
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbx7NtgG5QrheHPYQqw9CCQhW6ERI98PrCfmWm1vBwWVWdPG_CKl_E5hDG3yv5fAHWgE/exec';
+
+    function previewFile() {
+        const preview = document.getElementById('preview-img');
+        const fileInput = document.getElementById('fileInput');
+        const uploadText = document.getElementById('upload-text');
+        const previewContainer = document.getElementById('preview-container');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            uploadText.textContent = 'اضغط هنا لرفع صورة العذر أو التقرير';
+            uploadText.style.color = '#333';
+            uploadText.style.fontWeight = 'normal';
+            preview.src = '';
+            previewContainer.style.display = 'none';
+            return;
+        }
+
+        uploadText.textContent = 'تم اختيار الملف: ' + file.name;
+        uploadText.style.color = '#1a237e';
+        uploadText.style.fontWeight = 'bold';
+
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function () {
+                preview.src = reader.result;
+                previewContainer.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            preview.src = '';
+            previewContainer.style.display = 'none';
+        }
+    }
+
+    document.getElementById('excuseForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const form = this;
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            alert('يرجى إرفاق صورة العذر أو التقرير الطبي لإكمال إرسال الطلب.');
+            return;
+        }
+
+        const allowedTypes = [
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'image/gif',
+            'application/pdf'
+        ];
+
+        if (!allowedTypes.includes(file.type)) {
+            alert('نوع الملف غير مدعوم. يرجى رفع صورة أو ملف PDF.');
+            return;
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+            alert('حجم الملف كبير. يرجى اختيار ملف لا يتجاوز 10 ميجابايت.');
+            return;
+        }
+
+        const overlay = document.getElementById('status-overlay');
+        const loader = document.getElementById('loader');
+        const successMsg = document.getElementById('success-msg');
+
+        overlay.style.display = 'flex';
+        loader.style.display = 'block';
+        successMsg.style.display = 'none';
+
+        try {
+            const fileData = await readFileAsDataURL(file);
+
+            const payload = {
+                studentName: document.getElementById('studentName').value.trim(),
+                studentGrade: document.getElementById('studentGrade').value,
+                studentClass: document.getElementById('studentClass').value,
+                absenceDate: document.getElementById('absenceDate').value,
+                reason: document.getElementById('reason').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                fileData: fileData,
+                fileName: file.name,
+                fileType: file.type,
+                fileSize: file.size
+            };
+
+            await fetch(scriptURL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            loader.style.display = 'none';
+            successMsg.style.display = 'block';
+            form.reset();
+
+            document.getElementById('upload-text').textContent =
+                'اضغط هنا لرفع صورة العذر أو التقرير';
+            document.getElementById('upload-text').style.color = '#333';
+            document.getElementById('upload-text').style.fontWeight = 'normal';
+            document.getElementById('preview-img').src = '';
+            document.getElementById('preview-container').style.display = 'none';
+
+        } catch (error) {
+            console.error(error);
+            loader.style.display = 'none';
+            overlay.style.display = 'none';
+            alert('حدث خطأ أثناء إرسال الطلب. يرجى المحاولة مرة أخرى.');
+        }
+    });
+
+    function readFileAsDataURL(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(reader.error);
+
+            reader.readAsDataURL(file);
+        });
+    }
+</script>
+
+</body>
+</html>
